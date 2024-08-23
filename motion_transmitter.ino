@@ -175,7 +175,7 @@ void setup(void) {
 
   //setup motion detection
   mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
-  mpu.setMotionDetectionThreshold(25);
+  mpu.setMotionDetectionThreshold(20);
   mpu.setMotionDetectionDuration(10);
   mpu.setInterruptPinLatch(true);	// Keep it latched.  Will turn off when reinitialized.
   mpu.setInterruptPinPolarity(true);
