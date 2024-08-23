@@ -3,17 +3,37 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
+
+/* 
+For reference, the message dict used to communicate with the receiver is here:
+{
+    "1": {
+        "state/pico_central_receiver/motion_sensor/": {
+            "A": {"movement": {"a": "Movement Detected", "b": "No Movement"}},
+            "B": {
+                "battery": {},
+            },
+            "C": {"status": {"a": "Online", "b": "Error"}},
+            "D": {"movement_type": {"a": "Pitch", "b": "Acceleration"}},
+        }
+    },
+}
+*/
+
 #define LED_BUILTIN 2
 #define HC12 Serial2
 #define RXD2 16  //(RX2)
 #define TXD2 17 //(TX2)
+#define SDA_2 33
+#define SCL_2 32
 #define uS_TO_S_FACTOR 1000000ULL  /* Conversion factor for micro seconds to seconds */
-#define TIME_TO_SLEEP 15
-// #define TIME_TO_SLEEP 10800
+// #define TIME_TO_SLEEP 15 // for testing
+#define TIME_TO_SLEEP 10800
 
 Adafruit_MPU6050 mpu;
 Adafruit_LC709203F lc;
-TwoWire I2C = TwoWire(0); 
+
+int ErrorState = 0;
 
 void flash_led(int count) {
   for (int i = 0; i < count; i++) {
@@ -25,11 +45,15 @@ void flash_led(int count) {
 }
 
 void parse_battery_data() {
+  lc.setPowerMode(LC709203F_POWER_OPERATE);
   Serial.print("Batt Voltage: "); Serial.println(lc.cellVoltage(), 3);
   Serial.print("Batt Percent: "); Serial.println(lc.cellPercent(), 1);
-  // String batt = "1,B," + String(lc.cellPercent());
-  HC12.write("1,B,32.0");
+  char buffer[7];
+  char batt_reading[5] = "1,B,";
+  dtostrf(lc.cellPercent(), 4, 1, buffer);
+  HC12.write(strcat(batt_reading, buffer));
   flash_led(2);
+  lc.setPowerMode(LC709203F_POWER_SLEEP);
 }
 
 void parse_movement_data() {
@@ -98,40 +122,53 @@ void wakeup_routine(){
   }
 }
 
-void IRAM_ATTR isr() {
-	Serial.println("INTERRUPTED");
-}
+// void IRAM_ATTR isr() {
+// 	Serial.println("INTERRUPTED");
+// }
 
 void setup(void) {
   pinMode(LED_BUILTIN, OUTPUT);
+  HC12.begin(9600, SERIAL_8N1, RXD2, TXD2);      // Serial port to HC12
   Serial.begin(115200);
   while (!Serial)
     delay(10); // will pause Zero, Leonardo, etc until serial console opens
-
-  // LC709203F set up
+  
+  /* LC709203F set up */
   // I2C.begin(21,22, 10000);
-  // Serial.println("\nAdafruit LC709203F demo");
-  //pass lc.begin our slower TwoWire object
-  // if (!lc.begin(&I2C)) {
-  //   Serial.println(F("Couldnt find Adafruit LC709203F?\nMake sure a battery is plugged in!"));
-  //   while (1) delay(10);
-  // }
-  // Serial.println(F("Found LC709203F"));
-  // Serial.print("Version: 0x"); Serial.println(lc.getICversion(), HEX);
-  // lc.setPackSize(LC709203F_APA_3000MAH);
-  // lc.setAlarmVoltage(3.8);
+  Wire1.begin(SDA_2, SCL_2, 100000);
+  Serial.println("\nAdafruit LC709203F demo");
+  /* pass lc.begin our slower TwoWire object */
+  if (!lc.begin(&Wire1)) {
+    Serial.println(F("Couldnt find Adafruit LC709203F?\nMake sure a battery is plugged in!"));
+    while (1) {
+      if (!ErrorState) {
+        HC12.write("1,C,b");
+      }
+      flash_led(10);
+
+      esp_restart();
+    };
+  }
+  Serial.println(F("Found LC709203F"));
+  Serial.print("Version: 0x"); Serial.println(lc.getICversion(), HEX);
+  lc.setPackSize(LC709203F_APA_3000MAH);
+  lc.setAlarmVoltage(3.8);
 
 
   // MPU6050 setup
   Serial.println("Adafruit MPU6050 test!");
-  HC12.begin(9600, SERIAL_8N1, RXD2, TXD2);      // Serial port to HC12
   // attachInterrupt(GPIO_NUM_35, isr, RISING);
 
   // Try to initialize!
   if (!mpu.begin()) {
     Serial.println("Failed to find MPU6050 chip");
     while (1) {
-      delay(10);
+      if (!ErrorState) {
+        HC12.write("1,C,b");
+      }
+      flash_led(10);
+
+      esp_restart();
     }
   }
   Serial.println("MPU6050 Found!");
@@ -145,8 +182,11 @@ void setup(void) {
   mpu.setMotionInterrupt(true);
 
   Serial.println("");
+
+  /* set up sleep */
   esp_sleep_enable_ext0_wakeup(GPIO_NUM_35,0); //1 = High, 0 = Low
   esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  HC12.write("1,C,a");
   delay(800);
 
 }
