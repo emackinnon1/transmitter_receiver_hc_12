@@ -3,77 +3,43 @@
 #include <Adafruit_Sensor.h>
 #include <Wire.h>
 
+#define LED_BUILTIN 2
 #define HC12 Serial2
+#define RXD2 16  //(RX2)
+#define TXD2 17 //(TX2)
+#define uS_TO_S_FACTOR 1000000ULL  /* Conversion factor for micro seconds to seconds */
+#define TIME_TO_SLEEP 15
+// #define TIME_TO_SLEEP 10800
 
 Adafruit_MPU6050 mpu;
 Adafruit_LC709203F lc;
+TwoWire I2C = TwoWire(0); 
 
-/*
-Method to print the reason by which ESP32
-has been awaken from sleep
-*/
-void print_wakeup_reason(){
-  esp_sleep_wakeup_cause_t wakeup_reason;
-
-  wakeup_reason = esp_sleep_get_wakeup_cause();
-
-  switch(wakeup_reason)
-  {
-    case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); break;
-    case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
-    case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); break;
-    case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
-    case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
-    default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); break;
+void flash_led(int count) {
+  for (int i = 0; i < count; i++) {
+    digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+    delay(100);                       // wait for a second
+    digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+    delay(100);  
   }
 }
 
-void IRAM_ATTR isr() {
-	Serial.println("INTERRUPTED");
+void parse_battery_data() {
+  Serial.print("Batt Voltage: "); Serial.println(lc.cellVoltage(), 3);
+  Serial.print("Batt Percent: "); Serial.println(lc.cellPercent(), 1);
+  // String batt = "1,B," + String(lc.cellPercent());
+  HC12.write("1,B,32.0");
+  flash_led(2);
 }
 
-void setup(void) {
-  Serial.begin(115200);
-  while (!Serial)
-    delay(10); // will pause Zero, Leonardo, etc until serial console opens
+void parse_movement_data() {
 
-  Serial.println("Adafruit MPU6050 test!");
-  HC12.begin(9600);
-  // attachInterrupt(GPIO_NUM_35, isr, RISING);
-
-  // Try to initialize!
-  if (!mpu.begin()) {
-    Serial.println("Failed to find MPU6050 chip");
-    while (1) {
-      delay(10);
-    }
-  }
-  Serial.println("MPU6050 Found!");
-
-  //setupt motion detection
-  mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
-  mpu.setMotionDetectionThreshold(25);
-  mpu.setMotionDetectionDuration(10);
-  mpu.setInterruptPinLatch(true);	// Keep it latched.  Will turn off when reinitialized.
-  mpu.setInterruptPinPolarity(true);
-  mpu.setMotionInterrupt(true);
-
-  Serial.println("");
-  esp_sleep_enable_ext0_wakeup(GPIO_NUM_35,0); //1 = High, 0 = Low
-  delay(800);
-
-
-  //Go to sleep now
-  // Serial.println("Going to sleep now");
-  // esp_deep_sleep_start();
-}
-
-void loop() {
-  print_wakeup_reason();
   if(mpu.getMotionInterruptStatus()) {
     /* Get new sensor events with the readings */
     sensors_event_t a, g, temp;
     mpu.getEvent(&a, &g, &temp);
+    HC12.write("1,A,a");
+    Serial.println("Wrote to HC12");
 
     /* Print out the values */
     Serial.print("AccelX:");
@@ -94,7 +60,99 @@ void loop() {
     Serial.print("GyroZ:");
     Serial.print(g.gyro.z);
     Serial.println("");
+    
+    flash_led(4);
   }
+}
+
+/*
+Method to print the reason by which ESP32
+has been awaken from sleep
+*/
+void send_serial_data(String s) {
+  byte buf[10];
+  int count = s.length(); 
+  s.getBytes(buf, count + 1);
+  Serial.write(buf, count + 1);
+  Serial.println("Wrote to Serial");
+}
+
+
+/*
+Method to print the reason by which ESP32
+has been awaken from sleep
+*/
+void wakeup_routine(){
+  esp_sleep_wakeup_cause_t wakeup_reason;
+
+  wakeup_reason = esp_sleep_get_wakeup_cause();
+
+  switch(wakeup_reason)
+  {
+    case ESP_SLEEP_WAKEUP_EXT0 : Serial.println("Wakeup caused by external signal using RTC_IO"); parse_movement_data(); break;
+    case ESP_SLEEP_WAKEUP_EXT1 : Serial.println("Wakeup caused by external signal using RTC_CNTL"); break;
+    case ESP_SLEEP_WAKEUP_TIMER : Serial.println("Wakeup caused by timer"); parse_battery_data(); break;
+    case ESP_SLEEP_WAKEUP_TOUCHPAD : Serial.println("Wakeup caused by touchpad"); break;
+    case ESP_SLEEP_WAKEUP_ULP : Serial.println("Wakeup caused by ULP program"); break;
+    default : Serial.printf("Wakeup was not caused by deep sleep: %d\n",wakeup_reason); break;
+  }
+}
+
+void IRAM_ATTR isr() {
+	Serial.println("INTERRUPTED");
+}
+
+void setup(void) {
+  pinMode(LED_BUILTIN, OUTPUT);
+  Serial.begin(115200);
+  while (!Serial)
+    delay(10); // will pause Zero, Leonardo, etc until serial console opens
+
+  // LC709203F set up
+  // I2C.begin(21,22, 10000);
+  // Serial.println("\nAdafruit LC709203F demo");
+  //pass lc.begin our slower TwoWire object
+  // if (!lc.begin(&I2C)) {
+  //   Serial.println(F("Couldnt find Adafruit LC709203F?\nMake sure a battery is plugged in!"));
+  //   while (1) delay(10);
+  // }
+  // Serial.println(F("Found LC709203F"));
+  // Serial.print("Version: 0x"); Serial.println(lc.getICversion(), HEX);
+  // lc.setPackSize(LC709203F_APA_3000MAH);
+  // lc.setAlarmVoltage(3.8);
+
+
+  // MPU6050 setup
+  Serial.println("Adafruit MPU6050 test!");
+  HC12.begin(9600, SERIAL_8N1, RXD2, TXD2);      // Serial port to HC12
+  // attachInterrupt(GPIO_NUM_35, isr, RISING);
+
+  // Try to initialize!
+  if (!mpu.begin()) {
+    Serial.println("Failed to find MPU6050 chip");
+    while (1) {
+      delay(10);
+    }
+  }
+  Serial.println("MPU6050 Found!");
+
+  //setup motion detection
+  mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
+  mpu.setMotionDetectionThreshold(25);
+  mpu.setMotionDetectionDuration(10);
+  mpu.setInterruptPinLatch(true);	// Keep it latched.  Will turn off when reinitialized.
+  mpu.setInterruptPinPolarity(true);
+  mpu.setMotionInterrupt(true);
+
+  Serial.println("");
+  esp_sleep_enable_ext0_wakeup(GPIO_NUM_35,0); //1 = High, 0 = Low
+  esp_sleep_enable_timer_wakeup(TIME_TO_SLEEP * uS_TO_S_FACTOR);
+  delay(800);
+
+}
+
+void loop() {
+  wakeup_routine();
 
   delay(700);
   Serial.println("Going to sleep now");
