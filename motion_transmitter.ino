@@ -122,10 +122,6 @@ void wakeup_routine(){
   }
 }
 
-// void IRAM_ATTR isr() {
-// 	Serial.println("INTERRUPTED");
-// }
-
 void setup(void) {
   pinMode(LED_BUILTIN, OUTPUT);
   HC12.begin(9600, SERIAL_8N1, RXD2, TXD2);      // Serial port to HC12
@@ -134,7 +130,6 @@ void setup(void) {
     delay(10); // will pause Zero, Leonardo, etc until serial console opens
   
   /* LC709203F set up */
-  // I2C.begin(21,22, 10000);
   Wire1.begin(SDA_2, SCL_2, 100000);
   Serial.println("\nAdafruit LC709203F demo");
   /* pass lc.begin our slower TwoWire object */
@@ -157,7 +152,6 @@ void setup(void) {
 
   // MPU6050 setup
   Serial.println("Adafruit MPU6050 test!");
-  // attachInterrupt(GPIO_NUM_35, isr, RISING);
 
   // Try to initialize!
   if (!mpu.begin()) {
@@ -175,7 +169,7 @@ void setup(void) {
 
   //setup motion detection
   mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
-  mpu.setMotionDetectionThreshold(20);
+  mpu.setMotionDetectionThreshold(15);
   mpu.setMotionDetectionDuration(10);
   mpu.setInterruptPinLatch(true);	// Keep it latched.  Will turn off when reinitialized.
   mpu.setInterruptPinPolarity(true);
