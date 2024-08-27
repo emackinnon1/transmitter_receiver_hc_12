@@ -121,7 +121,6 @@ def check_fuel():
     global last_batt
     global next_fuel_check
     new_reading = sensor.cell_percent
-#     if (time.time() >= next_fuel_check):
     print("new batt reading: " + str(new_reading), "new voltage reading: " + str(sensor.cell_voltage))
     if last_batt != new_reading:
         send_serial_msg('1,B,' + str(new_reading))
