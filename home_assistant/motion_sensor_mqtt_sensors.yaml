@@ -1,0 +1,30 @@
+# ==================
+# MQTT ENTITIES
+# ==================
+
+mqtt:
+# # ==================
+# # MQTT SENSORS
+# # ==================
+  sensor:
+    - name: "Motion Sensor"
+      state_topic: "state/pico_central_receiver/motion_sensor/movement"
+    - name: "Motion Sensor Battery"
+      state_topic: "state/pico_central_receiver/motion_sensor/battery"
+      device_class: battery
+      icon: mdi:battery
+    - name: "Motion Sensor Status"
+      state_topic: "state/pico_central_receiver/motion_sensor/status"
+    - name: "Motion Sensor Movement Type"
+      state_topic: "state/pico_central_receiver/motion_sensor/movement_type"
+
+  # =================
+  # MQTT SWITCHES
+  # =================
+  switch:
+   - name: Movement detected mqtt switch
+     state_topic: "state/pico_central_receiver/motion_sensor/movement"
+     value_template: "{{ value == 'Movement Detected' }}"
+     command_topic: "cmd/pico_central_receiver/motion_sensor/movement"
+     state_on: true
+     state_off: false

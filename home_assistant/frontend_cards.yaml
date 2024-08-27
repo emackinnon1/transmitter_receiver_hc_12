@@ -1,0 +1,48 @@
+---
+type: vertical-stack
+cards:
+  - type: custom:text-divider-row
+    text: Motion Sensor
+    align: center
+  - type: vertical-stack
+    cards:
+      - type: entities
+        state_color: true
+        entities:
+          - entity: sensor.motion_sensor
+            icon: mdi:alarm-light
+            card_mod:
+              style: |
+                :host {
+                  {% if is_state('sensor.motion_sensor', 'Movement Detected') %}
+                    color: red;
+                    --card-mod-icon: mdi:alarm-light;
+                    --card-mod-icon-color: red;
+                  {% else %}
+                    color: #7fff00;
+                    --card-mod-icon: mdi:alarm-light-off;
+                    --card-mod-icon-color: #7fff00;
+                  {% endif %}
+                }
+            tap_action:
+              action: call-service
+              service: script.motion_sensor_reset
+          - entity: sensor.motion_sensor_battery
+            icon: mdi:battery
+          - entity: sensor.motion_sensor_status
+            icon: mdi:thumb-up-outline
+            card_mod:
+              style: |
+                :host {
+                  {% if is_state('sensor.motion_sensor_status', 'Error') %}
+                    color: red;
+                    --card-mod-icon: mdi:alert-circle;
+                    --card-mod-icon-color: red;
+                  {% else %}
+                    color: #7fff00;
+                    --card-mod-icon: mdi:thumb-up-outline;
+                    --card-mod-icon-color: #7fff00;
+                  {% endif %}
+                }
+          - entity: sensor.motion_sensor_movement_type
+            icon: mdi:motion-outline

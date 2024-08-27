@@ -1,0 +1,29 @@
+alias: Movement detection notify
+description: >-
+  Calls the scripts to notify via phone and watch when there is movement
+  detected
+trigger:
+  - platform: mqtt
+    topic: state/pico_central_receiver/motion_sensor/movement
+    payload: Movement Detected
+    enabled: false
+  - platform: state
+    entity_id:
+      - switch.movement_detected_mqtt_switch
+    from: "off"
+    to: "on"
+condition: []
+action:
+  - metadata: {}
+    data:
+      entity: media_player.sonos_era
+      volume: 73
+      announcement: Someone moved your shit
+    action: script.sonos_announcement
+  - data:
+      message: Someone moved your shit!
+    action: notify.mobile_app_samsung_galaxy_23
+  - data:
+      message: Someone moved your shit
+    action: notify.mobile_app_galaxy_watch6_classic_bs0k
+mode: restart

@@ -1,0 +1,9 @@
+alias: Motion sensor reset
+sequence:
+  - data:
+      qos: "1"
+      topic: cmd/pico_central_receiver/motion_sensor/movement
+      payload: 1,A,b
+    action: mqtt.publish
+mode: single
+icon: mdi:alarm-light
