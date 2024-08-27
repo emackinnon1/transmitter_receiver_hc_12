@@ -110,19 +110,22 @@ def check():
     global pingresp_rcv_flag
     if time.time() >= next_ping_time:
         ping()
-        #         if not pingresp_rcv_flag:
-        #             mqtt_con_flag = False
-        #             print("We have not received PINGRESP so broker disconnected")
-        #         else:
-        #             print("MQTT ping at", time.time())
-        #             ping()
-        #             ping_resp_rcv_flag = False
-        #     res = mqtt_client.check_msg()
-        #     if(res == b"PINGRESP"):
-        #         pingresp_rcv_flag = True
-        #         print("PINGRESP")
-        #     else:
-        #         ping()
+    # This functionality is useful but I need to tweak it to work better. Currently I get
+    # weird behavior from it.
+
+    # if not pingresp_rcv_flag:
+    #     mqtt_con_flag = False
+    #     print("We have not received PINGRESP so broker disconnected")
+    # else:
+    #     print("MQTT ping at", time.time())
+    #     ping()
+    #     ping_resp_rcv_flag = False
+    #     res = mqtt_client.check_msg()
+    #     if(res == b"PINGRESP"):
+    #         pingresp_rcv_flag = True
+    #         print("PINGRESP")
+    #     else:
+    #         ping()
         res = mqtt_client.check_msg()
     #         if(res == b"PINGRESP"):
     #             pingresp_rcv_flag = True
