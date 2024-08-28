@@ -14,12 +14,6 @@ trigger:
     to: "on"
 condition: []
 action:
-  - metadata: {}
-    data:
-      entity: media_player.sonos_era
-      volume: 73
-      announcement: Someone moved your shit
-    action: script.sonos_announcement
   - data:
       message: Someone moved your shit!
     action: notify.mobile_app_samsung_galaxy_23
