@@ -27,8 +27,8 @@ For reference, the message dict used to communicate with the receiver is here:
 #define SDA_2 33
 #define SCL_2 32
 #define uS_TO_S_FACTOR 1000000ULL  /* Conversion factor for micro seconds to seconds */
-// #define TIME_TO_SLEEP 15 // for testing
-#define TIME_TO_SLEEP 10800
+// #define TIME_TO_SLEEP 5 // for testing
+#define TIME_TO_SLEEP 14400
 
 Adafruit_MPU6050 mpu;
 Adafruit_LC709203F lc;
@@ -52,7 +52,7 @@ void parse_battery_data() {
   char batt_reading[5] = "1,B,";
   dtostrf(lc.cellPercent(), 4, 1, buffer);
   HC12.write(strcat(batt_reading, buffer));
-  flash_led(2);
+  flash_led(4);
   lc.setPowerMode(LC709203F_POWER_SLEEP);
 }
 
@@ -85,7 +85,7 @@ void parse_movement_data() {
     Serial.print(g.gyro.z);
     Serial.println("");
     
-    flash_led(4);
+    flash_led(5);
   }
 }
 
@@ -169,7 +169,7 @@ void setup(void) {
 
   //setup motion detection
   mpu.setHighPassFilter(MPU6050_HIGHPASS_0_63_HZ);
-  mpu.setMotionDetectionThreshold(15);
+  mpu.setMotionDetectionThreshold(5);
   mpu.setMotionDetectionDuration(10);
   mpu.setInterruptPinLatch(true);	// Keep it latched.  Will turn off when reinitialized.
   mpu.setInterruptPinPolarity(true);
