@@ -89,10 +89,6 @@ void parse_movement_data() {
   }
 }
 
-/*
-Method to print the reason by which ESP32
-has been awaken from sleep
-*/
 void send_serial_data(String s) {
   byte buf[10];
   int count = s.length(); 
